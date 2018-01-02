@@ -1,7 +1,9 @@
 // mocha -R min --inline-diffs *.js
 (typeof describe === 'function') && describe("DiffUpsert", function() {
-    var should = require("should");
-    var DiffUpsert = require('../index').DiffUpsert;
+    const should = require("should");
+    const fs = require('fs');
+    const path = require('path');
+    const DiffUpsert = require('../index').DiffUpsert;
 
     it("diff(obj,objBase) returns delta with new or updated properties", function() {
         // add object property
@@ -382,6 +384,20 @@
                 b: "b2"
             }
         }));
+    });
+    it("diff(...) can detect a change in a real configuration file", function() {
+        var confold = JSON.parse(fs.readFileSync(path.join(__dirname, 'confold.json')));
+        var confnew = JSON.parse(fs.readFileSync(path.join(__dirname, 'confnew.json')));
+        var du = new DiffUpsert();
+        var delta = du.diff(confnew, confold);
+        should.deepEqual(delta, {
+            switches: {
+                0: {
+                    pin: '373',
+                },
+            },
+            rbHash: 'c40547f27d9c5af04161117788088880',
+        });
     });
 })
 
