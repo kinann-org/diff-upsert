@@ -1,0 +1,40 @@
+{
+  "name": "diff-upsert",
+  "version": "0.1.0",
+  "description": "JSON object diff for upsert",
+  "main": "index.js",
+  "directories": {
+    "test": "test",
+    "src": "src"
+  },
+  "dependencies": {
+    "rimraf": "^2.6.1"
+  },
+  "devDependencies": {
+    "concurrently": "^3.2.0",
+    "mocha": "^3.2.0",
+    "should": "^11.2.0"
+  },
+  "scripts": {
+    "test": "npm run test:verbose",
+    "test:test": "mocha -w -R min --inline-diffs -g TEST",
+    "test:verbose": "mocha --inline-diffs",
+    "test:watch": "mocha -w --inline-diffs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kinann/diff-upsert.git"
+  },
+  "bin": {},
+  "keywords": [
+    "JSON",
+    "diff",
+    "upsert"
+  ],
+  "author": "Karl Lew",
+  "license": "MIT",
+  "bugs": {
+    "url": "git+https://github.com/kinann/diff-upsert/issues"
+  },
+  "homepage": "https://github.com/kinann/diff-upsert"
+}
