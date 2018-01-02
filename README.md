@@ -43,3 +43,10 @@ du.upsert(jbase, delta);
 // jbase.sleeve.length === 32
 ```
 
+#### excludeKeys
+`DiffUpsert` can be configured to ignore selected keys:
+```
+var du = new DiffUpsert({
+    excludeKeys: /^\$.*/,
+});
+```
