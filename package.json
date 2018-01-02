@@ -1,6 +1,6 @@
 {
   "name": "diff-upsert",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "JSON object diff for upsert",
   "main": "index.js",
   "directories": {
