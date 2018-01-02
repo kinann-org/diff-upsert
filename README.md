@@ -1,5 +1,5 @@
 # diff-upsert
-`DiffUpsert` deep diffs a modified JSON object with a base object using recursive matcher. 
+`DiffUpsert` deep diffs a modified Javascript object with a base object using recursive matcher. 
 `DiffUpsert` can also upsert a delta into a base object to bring it up-to-date.
 This is helpful for managing changes to JSON configurations with deep trees.
 
