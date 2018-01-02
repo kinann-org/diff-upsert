@@ -1,9 +1,9 @@
 # diff-upsert
-JSON diff for upserting
+`DiffUpsert` deep diffs a modified JSON object with a base object using recursive matcher. 
+`DiffUpsert` can also upsert a delta into a base object to bring it up-to-date.
+This is helpful for managing changes to JSON configurations with deep trees.
 
-### Overview
-`DiffUpsert` lets you diff a modified JSON object with a base object. The resulting delta can then by used
-to update the base object. This is helpful for managing changes JSON configurations.
+NOTE: Contrast this behavior with the standard `Object.assign()` method, which only handles shallow deltas.
 
 #### Base Object
 ```
@@ -30,7 +30,6 @@ var jupdated = {
 var du = new DiffUpsert();
 var delta = du.diff(jupdated, jbase);
 //{
-//    color: 'red',
 //    sleeve: {
 //        length: 32, // updated property
 //    },
