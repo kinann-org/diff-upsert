@@ -1,7 +1,7 @@
 // mocha -R min --inline-diffs *.js
 (typeof describe === 'function') && describe("DiffUpsert", function() {
     var should = require("should");
-    var DiffUpsert = exports.DiffUpsert || require('../index').DiffUpsert;
+    var DiffUpsert = require('../index').DiffUpsert;
 
     it("diff(obj,objBase) returns delta with new or updated properties", function() {
         // add object property
