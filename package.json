@@ -8,10 +8,8 @@
     "src": "src"
   },
   "dependencies": {
-    "rimraf": "^2.6.1"
   },
   "devDependencies": {
-    "concurrently": "^3.2.0",
     "mocha": "^3.2.0",
     "should": "^11.2.0"
   },

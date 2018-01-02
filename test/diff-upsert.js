@@ -1,136 +1,7 @@
-var should = require("should");
-
-(function(exports) {
-
-    class DiffUpsert {
-        constructor(opts={}) {
-            this.excludeKey = opts.excludeKey;
-        }
-
-        upsert(dst, delta) {
-            if (dst == null || delta == null) {
-                return null;
-            }
-            should && dst.should.not.instanceof(Array);
-            should && dst.should.instanceof(Object);
-            var keys = Object.keys(delta);
-            for (var i = keys.length; i-- > 0;) {
-                var key = keys[i];
-                var deltaVal = delta[key];
-                var dstVal = dst[key];
-                if (dstVal == null) {
-                    dst[key] = deltaVal;
-                } else if (deltaVal == null) {
-                    dst[key] = deltaVal;
-                } else if (dstVal instanceof Array) {
-                    if (dstVal.length === deltaVal.length) {
-                        for (var j = 0; j < dstVal.length; j++) {
-                            if (deltaVal[j] != null) {
-                                dstVal[j] = deltaVal[j];
-                            }
-                        }
-                    } else {
-                        dst[key] = deltaVal;
-                    }
-                } else if (deltaVal instanceof Array) {
-                    dst[key] = deltaVal;
-                } else if (typeof dstVal == 'object' && typeof deltaVal === 'object') {
-                    this.upsert(dst[key], deltaVal);
-                } else {
-                    dst[key] = deltaVal;
-                }
-            }
-            return dst;
-        }
-
-        _diffCore(obj1, obj2) {
-            if (obj1 === obj2) {
-                return {
-                    same: true
-                };
-            }
-            if (obj1 == null) {
-                return {
-                    same: false,
-                    diff: obj1
-                };
-            }
-            if (obj2 == null) {
-                return {
-                    same: false,
-                    diff: obj1
-                };
-            }
-            if (typeof obj1 === 'undefined' || typeof obj2 === 'undefined') {
-                return {
-                    same: false,
-                    diff: obj1
-                };
-            }
-            if (obj1.constructor !== obj2.constructor) {
-                return {
-                    same: false,
-                    diff: obj1
-                };
-            }
-            if (typeof obj1 !== 'object' || obj1 === null || obj2 === null) {
-                return {
-                    same: false,
-                    diff: obj1
-                }; // atomic nodes differ
-            }
-            var delta = {
-                same: true
-            };
-            if (obj1.constructor === Array) {
-                delta.diff = [];
-                if (obj1.length == obj2.length) {
-                    for (var i = 0; i < obj1.length; i++) {
-                        var kidDelta = this._diffCore(obj1[i], obj2[i]);
-                        if (kidDelta.same) {
-                            //delta.diff[i] = null;
-                        } else {
-                            //delta.diff[i] = kidDelta.diff;
-                            delta.same = false;
-                            delta.diff = obj1;
-                            break;
-                        }
-                    }
-                } else {
-                    delta.diff = obj1;
-                    delta.same = false;
-                }
-            } else { // object
-                var keys = Object.keys(obj1);
-                for (var i = 0; i < keys.length; i++) {
-                    var key = keys[i];
-                    if (this.excludeKey && this.excludeKey.test(key)) {
-                        continue;
-                    }
-                    var kidDelta = this._diffCore(obj1[key], obj2[key]);
-                    if (!kidDelta.same) {
-                        delta.diff = delta.diff || {};
-                        delta.diff[key] = kidDelta.diff;
-                        delta.same = false;
-                    }
-                }
-            }
-            return delta;
-        }
-
-        diff(obj1, obj2, options) {
-            options = options || {};
-            var result = this._diffCore(obj1, obj2).diff || null;
-            return result;
-        }
-    }
-
-    module.exports = exports.DiffUpsert = DiffUpsert;
-})(typeof exports === "object" ? exports : (exports = {}));
-
 // mocha -R min --inline-diffs *.js
 (typeof describe === 'function') && describe("DiffUpsert", function() {
-    var DiffUpsert = exports.DiffUpsert;
+    var should = require("should");
+    var DiffUpsert = exports.DiffUpsert || require('../index').DiffUpsert;
 
     it("diff(obj,objBase) returns delta with new or updated properties", function() {
         // add object property
@@ -159,6 +30,33 @@ var should = require("should");
                 b3: 'white-new',
             },
         });
+    });
+    it("diff(...) treats null as a valid property value", function() {
+        // add object property
+        var jbase = {
+            b: {
+                b1: 'blue',
+                b2: 'green',
+            },
+        };
+        var jnew = {
+            b: {
+                b1: null,
+                b2: 'green',
+            },
+        };
+        var du = new DiffUpsert();
+
+        // diff detects null
+        var delta = du.diff(jnew, jbase);
+        should.deepEqual(delta, {
+            b: {
+                b1: null,
+            },
+        });
+
+        // upsert applies null value
+        should.deepEqual(du.upsert(jbase, delta), jnew);
     });
     it("upsert(obj,delta) applies delta to object", function() {
         var jobj = {
@@ -222,7 +120,6 @@ var should = require("should");
         var jnew = [e1,e2new].map(e => JSON.parse(e));
         var du = new DiffUpsert();
         var delta = du.diff(jnew, jbase);
-        /*
         should.deepEqual(delta,{
             1: {
                 d: {
@@ -230,11 +127,66 @@ var should = require("should");
                 },
             }
         });
-        */
-
     });
     it("diff(obj,objBase) should return diff of updated or inserted fields", function() {
         var jsonold = {
+            "w": [{
+                w0a: 1,
+            }, {
+                w1a: 2,
+            }],
+        };
+
+        var jsonnew = {
+            "w": [{
+                w0a: 1,
+            }, {
+                w1a: null,
+                w1b: 21,
+            }, {
+                w2a: 30,
+            }],
+        };
+
+        var deltaExpected = {
+            "w": {
+                1: {
+                    w1a: null,
+                    w1b: 21,
+                },
+                2: {
+                    w2a: 30,
+                }
+            },
+        };
+
+        var du = new DiffUpsert();
+        var delta;
+        delta = du.diff(jsonnew, jsonold);
+        should.deepEqual(delta, deltaExpected);
+
+        du.upsert(jsonold, delta);
+        should.deepEqual(jsonold, jsonnew);
+
+        delta = du.diff(jsonnew, null);
+        should.deepEqual(delta, jsonnew);
+
+        delta = du.diff(null, jsonold);
+        should.deepEqual(delta, null);
+    });
+    it("diff(obj,obj) returns null if there is no difference", function() {
+        var du = new DiffUpsert();
+
+        var obj = {
+            a: 'red',
+        }
+        should(du.diff(obj,obj)).equal(null);
+
+        var obj = [ 1,2,3];
+        should(du.diff(obj,obj)).equal(null);
+
+
+        var obj = {
             "w": [{
                 va: 1,
                 wa: 11,
@@ -253,68 +205,7 @@ var should = require("should");
                 "p": 911
             },
         };
-
-        var jsonnew = {
-            "w": [{
-                va: 1,
-                wa: 11,
-            }, {
-                va: 2,
-                wb: 21,
-            }, {
-                vc: 30,
-                wc: 31,
-            }],
-            "x": {
-                "A": "1",
-                "B": 2.1,
-                "C": "3",
-                "D": "Different",
-                "E": [10, 21, 30]
-            },
-            "y": ["a", "b", "d"],
-            "z": {
-                "p": 911
-            },
-        };
-
-        var deltaExpected = {
-            "w": [{
-                va: 1,
-                wa: 11,
-            }, {
-                va: 2,
-                wb: 21,
-            }, {
-                vc: 30,
-                wc: 31,
-            }],
-            "x": {
-                "B": 2.1,
-                "C": "3",
-                "D": "Different",
-                //"E": [null, 21, null]
-                "E": [10, 21, 30]
-            },
-            "y": ["a", "b", "d"],
-        };
-
-        var du = new DiffUpsert();
-        var delta;
-        delta = du.diff(jsonnew, jsonold);
-        should.deepEqual(delta, deltaExpected);
-
-        du.upsert(jsonold, delta);
-        should.deepEqual(jsonold, jsonnew);
-
-        var selfDiff = du.diff(jsonold, jsonold);
-        should(selfDiff == null).True;
-
-        delta = du.diff(jsonnew, null);
-        should.deepEqual(delta, jsonnew);
-
-        delta = du.diff(null, jsonold);
-        should.deepEqual(delta, null);
+        should(du.diff(obj,obj)).equal(null);
     });
     it("diff(obj,objBase) ignores excluded keys", function() {
         var jsonOld = {
@@ -430,18 +321,11 @@ var should = require("should");
         }, {
             a: [1, 2]
         }), {
-            a: [1, 2]
-        });
-        should.deepEqual(du.upsert({
-            a: [1, 2]
-        }, {
             a: {
-                b: "b2"
-            }
-        }), {
-            a: {
-                b: "b2"
-            }
+                0: 1,
+                1: 2,
+                x: "x2",
+            },
         });
         should.deepEqual(du.upsert({
             a: 1
@@ -466,9 +350,11 @@ var should = require("should");
             }
         }, {
             a: {
-                b: [{
-                    x: "x1"
-                }],
+                b: {
+                    0: {
+                        x: "x1"
+                    }
+                },
                 d: "d1",
             }
         }), {
@@ -487,6 +373,15 @@ var should = require("should");
         }), {
             a: [2, 3]
         });
+    });
+    it("upsert(...) delta type must be compatible with object", function() {
+        should.throws(() => du.upsert({
+            a: [1, 2]
+        }, {
+            a: {
+                b: "b2"
+            }
+        }));
     });
 })
 
